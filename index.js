@@ -6,7 +6,7 @@ import passport from "passport";
 import session from "express-session";
 import { Strategy } from "passport-local";
 import env from "dotenv";
-
+env.config()
 
 const app = express();
 const port = 3000;
@@ -17,9 +17,12 @@ app.use(express.static("public"));
 
 //Creating the session middle wares
 app.use(session({
-  secret:"TOPSECRETWORD",
+  secret:process.env.SESSIOIN_SECRET,
   resave:false, //false as we dont want to save the data into the postges data base 
   saveUninitialized:true,
+  cookie:{
+    maxAge:1000*60*60*24,
+  }
 })
 );
 
@@ -37,8 +40,8 @@ app.use(passport.session());
 const db = new pg.Client({
   user: "postgres",
   host: "localhost",
-  database: "",
-  password: "",
+  database:process.env.DATABASE_NAME,
+  password:process.env.DATABASE_PASS,
   port: 5432,
 });
 db.connect();
@@ -51,7 +54,7 @@ app.get("/", (req, res) => {
 
 app.get("/login", (req, res) => {
   res.render("login.ejs");
-});
+});                                                                                                                   
 
 app.get("/register", (req, res) => {
   res.render("register.ejs");
@@ -65,6 +68,17 @@ app.get("/secrets",(req,res)=>{
   else{
     res.render("/login");
   }
+});
+
+
+
+app.get("/logout", (req, res) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect("/");
+  });
 });
 
 
@@ -91,6 +105,7 @@ app.post("/register", async (req, res) => {
     if (checkResult.rows.length > 0) {
       req.redirect("/login");
     } else {
+      
       bcrypt.hash(password, saltRounds, async (err, hash) => {
         if (err) {
           console.error("Error hashing password:", err);
@@ -121,9 +136,16 @@ passport.use(new Strategy(async function verify(username,password,cb){
     const result = await db.query("SELECT * FROM users WHERE email = $1", [
       username,
     ]);
+
+
+
+
     if (result.rows.length > 0) {
       const user = result.rows[0];
       const storedHashedPassword = user.password;
+
+
+
       bcrypt.compare(password, storedHashedPassword, (err, valid) => {
         if (err) {
           console.error("Error comparing passwords:", err);
@@ -136,10 +158,19 @@ passport.use(new Strategy(async function verify(username,password,cb){
           }
         }
       });
-    } else {
+
+
+    } 
+    
+    
+    
+    else {
       return cb("User not found");
     }
-  } catch (err) {
+  }
+  
+  
+  catch (err) {
     console.log(err);
   }
 
