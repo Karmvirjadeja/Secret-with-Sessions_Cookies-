@@ -8,7 +8,7 @@ import { Strategy } from "passport-local";
 import {GoogleStrategy} from "passport-google-oauth";
 import env from "dotenv";
 env.config()
-
+//Here i am having the env,config method 
 const app = express();
 const port = 3000;
 const saltRounds = 10;
